@@ -1,7 +1,8 @@
 # Worker dependencies (Colab: torch and torchaudio are preinstalled)
 
-chatterbox-tts
-kokoro>=0.9.2
+chatterbox-tts>=0.1.5,<0.2
+kokoro>=0.7.16,<0.8
+misaki>=0.9.4
 soundfile
 numpy
 requests
