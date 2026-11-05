@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: cloud-tts-gateway
+    runtime: python
+    plan: free
+    rootDir: gateway
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: USER_API_KEY
+        generateValue: true
+      - key: WORKER_TOKEN
+        generateValue: true
+      - key: DATABASE_PATH
+        value: /tmp/cloud_tts.sqlite3
+      - key: HEARTBEAT_TTL
+        value: "60"
+      - key: JOB_TTL_SECONDS
+        value: "2700"
+      - key: CORS_ORIGINS
+        value: "*"

@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cloud TTS</title>
+<meta name="description" content="Private text-to-speech running on a free Colab GPU.">
+<meta name="theme-color" content="#0b0a09">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cloud TTS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png" sizes="64x64">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#0b0a09;
+    --surface:#14110e;
+    --surface-2:#1b1713;
+    --line:#2b241e;
+    --line-soft:#211c17;
+    --text:#f4eee6;
+    --muted:#a99c8d;
+    --faint:#6f6459;
+    --ember:#ff8a4c;
+    --ember-soft:#ffb37a;
+    --mint:#8fe3c0;
+    --danger:#ff7a7a;
+    --radius:20px;
+    --shadow:0 24px 60px -30px rgba(0,0,0,.9);
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    background:
+      radial-gradient(900px 520px at 50% -8%, #2a1a12 0%, rgba(42,26,18,0) 62%),
+      radial-gradient(700px 400px at 100% 0%, rgba(143,227,192,.05) 0%, rgba(143,227,192,0) 60%),
+      var(--bg);
+    color:var(--text);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:max(20px,env(safe-area-inset-top)) 18px 64px;
+  }
+  .wrap{max-width:720px;margin:0 auto}
+  .eyebrow{
+    font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ember);
+    display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent)}
+  h1{
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    font-weight:500;font-size:clamp(38px,10vw,64px);line-height:.98;
+    letter-spacing:-.02em;margin:16px 0 10px;
+  }
+  h1 em{font-style:italic;color:var(--ember-soft)}
+  .tagline{color:var(--muted);margin:0 0 8px;max-width:46ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 28px}
+  .chip{
+    font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:rgba(20,17,14,.7)
+  }
+  .chip b{color:var(--mint);font-weight:600}
+  .card{
+    background:linear-gradient(180deg,rgba(27,23,19,.92),rgba(20,17,14,.94));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;margin:0 0 16px;box-shadow:var(--shadow);
+  }
+  .card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
+  .card-head h2{
+    margin:0;font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--muted)
+  }
+  .card-head .num{font:600 11px/1 ui-monospace,monospace;color:var(--faint)}
+  label{display:block;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--muted);margin:0 0 6px}
+  input,select,textarea,button{font:inherit;color:inherit}
+  input,select,textarea{
+    width:100%;background:#0e0c0a;border:1px solid var(--line);border-radius:12px;
+    padding:12px 13px;outline:none;transition:border-color .15s,box-shadow .15s;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--ember);box-shadow:0 0 0 3px rgba(255,138,76,.13)}
+  input::placeholder,textarea::placeholder{color:var(--faint)}
+  textarea{min-height:150px;resize:vertical;line-height:1.5}
+  .row{display:grid;gap:12px}
+  .row.two{grid-template-columns:1fr 1fr}
+  @media(max-width:520px){.row.two{grid-template-columns:1fr}}
+  button{
+    cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-weight:700;
+    transition:transform .12s ease,opacity .15s,background .15s;
+  }
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .primary{
+    width:100%;background:linear-gradient(135deg,#ffa066,#ff7a3c);
+    color:#20100a;box-shadow:0 10px 30px -12px rgba(255,122,60,.8);
+  }
+  .secondary{background:transparent;border:1px solid var(--line);color:var(--text);font-weight:600}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:600;padding:9px 12px;font-size:13px}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+  .btn-row .secondary{flex:1;min-width:130px}
+  .hint{color:var(--faint);font-size:12.5px;margin:10px 0 0}
+  .hint a{color:var(--ember-soft)}
+  details summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  details summary::-webkit-details-marker{display:none}
+  details summary .card-head{margin:0}
+  details summary::after{content:"+";font:400 18px/1 ui-monospace,monospace;color:var(--muted);transition:transform .2s}
+  details[open] summary::after{transform:rotate(45deg)}
+  details[open] .details-body{margin-top:16px}
+
+  /* stages */
+  .stages{display:grid;gap:2px;margin:0 0 16px;border:1px solid var(--line-soft);border-radius:14px;overflow:hidden}
+  .stage{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:10px;padding:12px 14px;background:#0e0c0a}
+  .stage + .stage{border-top:1px solid var(--line-soft)}
+  .dot{width:9px;height:9px;border-radius:50%;background:#3a322b;justify-self:center;transition:background .2s}
+  .stage b{display:block;font-size:14px;font-weight:600}
+  .stage small{display:block;color:var(--faint);font-size:12px;margin-top:1px}
+  .stage .state{font:600 10px/1 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .stage[data-state="working"] .dot{background:var(--ember);animation:pulse 1.1s infinite}
+  .stage[data-state="working"] .state{color:var(--ember)}
+  .stage[data-state="ok"] .dot{background:var(--mint);box-shadow:0 0 0 3px rgba(143,227,192,.12)}
+  .stage[data-state="ok"] .state{color:var(--mint)}
+  .stage[data-state="error"] .dot{background:var(--danger)}
+  .stage[data-state="error"] .state{color:var(--danger)}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,138,76,.4)}50%{opacity:.65;box-shadow:0 0 0 5px rgba(255,138,76,0)}}
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 ui-monospace,monospace;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#0e0c0a
+  }
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block}
+  .pill[data-tone="ok"]{color:var(--mint);border-color:rgba(143,227,192,.3)}
+  .pill[data-tone="ok"] i{background:var(--mint)}
+  .pill[data-tone="warn"]{color:var(--ember-soft);border-color:rgba(255,179,122,.28)}
+  .pill[data-tone="warn"] i{background:var(--ember)}
+  .pill[data-tone="bad"]{color:var(--danger);border-color:rgba(255,122,122,.3)}
+  .pill[data-tone="bad"] i{background:var(--danger)}
+
+  .slider-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;margin-top:4px}
+  .slider-row output{font:600 12px/1 ui-monospace,monospace;color:var(--ember-soft);min-width:44px;text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:26px;background:transparent;padding:0;border:0;box-shadow:none}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:linear-gradient(90deg,var(--ember),#5b4436)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--text);margin-top:-7px;border:3px solid #20100a;box-shadow:0 0 0 1px var(--ember)}
+  input[type=range]::-moz-range-track{height:4px;border-radius:99px;background:#5b4436}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:3px solid #20100a;border-radius:50%;background:var(--text)}
+
+  .hidden{display:none !important}
+  .out{margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)}
+  audio{width:100%;margin-top:12px;border-radius:12px;background:#0e0c0a}
+  .dl{
+    display:inline-flex;align-items:center;gap:8px;margin-top:12px;text-decoration:none;
+    font-weight:650;font-size:14px;color:#20100a;background:var(--mint);padding:10px 14px;border-radius:11px
+  }
+  .history{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .history button{
+    width:100%;text-align:left;background:#0e0c0a;border:1px solid var(--line-soft);
+    border-radius:11px;padding:10px 12px;font-weight:500;color:var(--muted);font-size:13px;
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center
+  }
+  .history button:hover{border-color:var(--line);color:var(--text)}
+  .history .when{font:500 10px/1 ui-monospace,monospace;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+  .toast{
+    position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
+    max-width:min(92vw,560px);background:#24170f;border:1px solid #4a3220;color:#ffd9c2;
+    padding:11px 15px;border-radius:12px;font-size:13.5px;box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast[data-tone="bad"]{background:#2a1212;border-color:#5a2727;color:#ffc9c9}
+  footer{color:var(--faint);font-size:12px;text-align:center;margin-top:28px;line-height:1.7}
+  @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Cloud TTS</div>
+    <h1>Text in.<br><em>Voice out.</em></h1>
+    <p class="tagline">A private speech studio running on a free Colab GPU, orchestrated by Render. Your text never touches a paid API.</p>
+    <div class="meta">
+      <span class="chip">engine <b id="chipEngine">chatterbox</b></span>
+      <span class="chip">queue <b id="chipQueue">idle</b></span>
+      <span class="chip">mode <b id="chipMode">mp3</b></span>
+    </div>
+  </header>
+
+  <details class="card" id="connCard" open>
+    <summary><div class="card-head"><h2>01 / Connection</h2><span class="num" id="connState">not set</span></div></summary>
+    <div class="details-body">
+      <div class="row">
+        <div>
+          <label for="url">Gateway URL</label>
+          <input id="url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-service.onrender.com">
+        </div>
+        <div>
+          <label for="key">User API key</label>
+          <input id="key" type="password" autocomplete="off" placeholder="USER_API_KEY">
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="secondary" id="saveConn">Save</button>
+        <button class="secondary" id="testConn">Test</button>
+      </div>
+      <p class="hint">Stored only in this browser. Use the <b>USER_API_KEY</b> from Render — never the worker token.</p>
+    </div>
+  </details>
+
+  <section class="card">
+    <div class="card-head"><h2>02 / Session</h2><span class="num">wake the stack</span></div>
+    <div class="stages" aria-live="polite">
+      <div class="stage" data-stage="gateway" data-state="idle">
+        <span class="dot"></span><div><b>Gateway</b><small>Render cold start (~60s)</small></div><span class="state">idle</span>
+      </div>
+      <div class="stage" data-stage="worker" data-state="idle">
+        <span class="dot"></span><div><b>Worker</b><small>Colab notebook heartbeat</small></div><span class="state">idle</span>
+      </div>
+      <div class="stage" data-stage="model" data-state="idle">
+        <span class="dot"></span><div><b>Model</b><small>Chatterbox / Kokoro in GPU memory</small></div><span class="state">idle</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="startSession" style="flex:2;min-width:180px">Start session</button>
+      <button class="secondary" id="refreshSession" style="flex:1;min-width:120px">Refresh</button>
+    </div>
+    <p class="hint" id="sessionHint">Start this first. It wakes Render, checks the worker, and loads the selected engine.</p>
+    <details class="hidden" id="colabHelp" style="margin-top:14px">
+      <summary><div class="card-head"><h2>Worker is offline</h2><span class="num">open Colab</span></div></summary>
+      <div class="details-body">
+        <p class="hint" style="margin-top:0">Colab cannot be started remotely. On your phone or laptop:</p>
+        <ol class="hint" style="padding-left:18px;line-height:1.9">
+          <li>Open <b>colab/CloudTTS_Worker.ipynb</b> in Google Colab.</li>
+          <li>Add secrets <code>GATEWAY_URL</code> and <code>WORKER_TOKEN</code>.</li>
+          <li>Runtime &rsaquo; Change runtime type &rsaquo; T4 GPU, then Run all.</li>
+          <li>Come back here and tap <b>Refresh</b>.</li>
+        </ol>
+        <button class="ghost" id="copyUrl" style="margin-top:6px">Copy gateway URL</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>03 / Speak</h2><span class="num"><span id="charCount">0</span> / 5000</span></div>
+
+    <div class="row two" style="margin-bottom:12px">
+      <div>
+        <label for="voice">Voice</label>
+        <select id="voice"></select>
+      </div>
+      <div>
+        <label for="format">Format</label>
+        <select id="format">
+          <option value="mp3">MP3 · small download</option>
+          <option value="wav">WAV · lossless</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="text">Text</label>
+    <textarea id="text" maxlength="5000" placeholder="Type or paste something worth hearing…"></textarea>
+
+    <div class="row two" style="margin-top:12px">
+      <div>
+        <div class="slider-row"><label for="speed">Speed</label><output id="speedOut">1.00×</output></div>
+        <input id="speed" type="range" min="0.5" max="2" step="0.05" value="1">
+      </div>
+      <div id="exagWrap">
+        <div class="slider-row"><label for="exag">Expressiveness</label><output id="exagOut">0.50</output></div>
+        <input id="exag" type="range" min="0" max="1.5" step="0.05" value="0.5">
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px">
+      <button class="primary" id="generate" style="flex:2;min-width:200px">Generate speech</button>
+      <button class="secondary" id="clear" style="flex:1;min-width:100px">Clear</button>
+    </div>
+    <p class="hint" id="jobHint">Tip: Cmd/Ctrl + Enter generates. Long text is chunked sentence by sentence for stability.</p>
+
+    <div class="out hidden" id="out">
+      <div class="pill" id="jobPill" data-tone="warn"><i></i><span>queued</span></div>
+      <audio id="player" controls preload="metadata"></audio>
+      <a class="dl" id="download" download>Download audio</a>
+    </div>
+  </section>
+
+  <details class="card" id="historyCard">
+    <summary><div class="card-head"><h2>04 / Recent</h2><span class="num">on this device</span></div></summary>
+    <div class="details-body"><ul class="history" id="history"></ul></div>
+  </details>
+
+  <footer>
+    Sessions are ephemeral: Render sleeps, Colab expires, jobs are cleaned up.<br>
+    Chatterbox output carries Resemble's inaudible Perth watermark. Only clone voices you have rights to.
+    <div style="margin-top:14px"><button class="ghost hidden" id="installBtn">Install app</button></div>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const cfgKey = "cloudtts.config.v1";
+  const histKey = "cloudtts.history.v1";
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const defaults = {
+    url: location.protocol.startsWith("http") ? location.origin : "",
+    key: "",
+    voice: "male_natural",
+    format: "mp3",
+    speed: 1,
+    exaggeration: 0.5,
+  };
+  let config = { ...defaults, ...(JSON.parse(localStorage.getItem(cfgKey) || "{}")) };
+  let catalog = [];
+  let busy = false;
+  let sessionRunning = false;
+
+  const tone = (el, t) => el && el.setAttribute("data-tone", t);
+  function toast(message, bad = false) {
+    const el = $("toast");
+    el.textContent = message;
+    el.setAttribute("data-tone", bad ? "bad" : "ok");
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove("show"), 4200);
+  }
+
+  function saveConfig() {
+    localStorage.setItem(cfgKey, JSON.stringify(config));
+  }
+
+  function baseUrl() {
+    return (config.url || "").trim().replace(/\/+$/, "");
+  }
+
+  async function request(path, options = {}, timeoutMs = 90000) {
+    if (!baseUrl()) throw new Error("Enter your gateway URL first.");
+    if (!config.key) throw new Error("Enter your user API key first.");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let res;
+    try {
+      res = await fetch(baseUrl() + path, {
+        ...options,
+        headers: {
+          Authorization: "Bearer " + config.key,
+          ...(options.body ? { "Content-Type": "application/json" } : {}),
+          ...(options.headers || {}),
+        },
+        signal: controller.signal,
+        cache: "no-store",
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === "AbortError") throw new Error("Request timed out.");
+      throw new Error("Cannot reach the gateway. Is the URL correct and Render awake?");
+    }
+    clearTimeout(timer);
+    let data = null;
+    const type = res.headers.get("content-type") || "";
+    try { data = type.includes("json") ? await res.json() : await res.text(); } catch { data = null; }
+    if (!res.ok) {
+      let detail = data && data.detail;
+      if (detail && typeof detail === "object") detail = detail.message || JSON.stringify(detail);
+      throw new Error(detail || `Request failed (${res.status})`);
+    }
+    return data;
+  }
+
+  async function requestBlob(path) {
+    const res = await fetch(baseUrl() + path, {
+      headers: { Authorization: "Bearer " + config.key },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Audio download failed (" + res.status + ")");
+    return res.blob();
+  }
+
+  function setStage(name, state, note) {
+    const row = document.querySelector(`.stage[data-stage="${name}"]`);
+    if (!row) return;
+    row.setAttribute("data-state", state);
+    row.querySelector(".state").textContent = state;
+    if (note) row.querySelector("small").textContent = note;
+  }
+
+  function resetStages() {
+    setStage("gateway", "idle", "Render cold start (~60s)");
+    setStage("worker", "idle", "Colab notebook heartbeat");
+    setStage("model", "idle", "Chatterbox / Kokoro in GPU memory");
+  }
+
+  function selectedVoice() {
+    return catalog.find((v) => v.id === config.voice) || catalog[0] || { id: "male_natural", engine: "chatterbox", label: "Male — Natural" };
+  }
+  function desiredEngine() {
+    return selectedVoice().engine || "chatterbox";
+  }
+
+  async function waitForHealth(budgetMs = 95000) {
+    const started = Date.now();
+    while (Date.now() - started < budgetMs) {
+      const elapsed = Math.round((Date.now() - started) / 1000);
+      setStage("gateway", "working", `waking Render… ${elapsed}s`);
+      try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 12000);
+        const res = await fetch(baseUrl() + "/health", { cache: "no-store", signal: controller.signal });
+        clearTimeout(t);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.ok) return data;
+        }
+      } catch (_) { /* still cold */ }
+      await sleep(2500);
+    }
+    throw new Error("Gateway did not wake within 95s. Check the Render service.");
+  }
+
+  async function startSession() {
+    if (sessionRunning) return null;
+    if (!baseUrl() || !config.key) {
+      $("connCard").open = true;
+      throw new Error("Save your gateway URL and API key first.");
+    }
+    sessionRunning = true;
+    $("startSession").disabled = true;
+    $("generate").disabled = true;
+    resetStages();
+    $("colabHelp").classList.add("hidden");
+    try {
+      await waitForHealth();
+      setStage("gateway", "ok", "online");
+      let session = await request("/api/session");
+      if (session.worker !== "online") {
+        setStage("worker", "error", "offline");
+        setStage("model", "idle", "waiting for worker");
+        $("colabHelp").classList.remove("hidden");
+        $("colabHelp").open = true;
+        $("sessionHint").textContent = "Worker offline. Open Colab, run all cells, then tap Refresh.";
+        toast("Worker offline — open the Colab notebook.", true);
+        return null;
+      }
+      setStage("worker", "ok", session.worker_state || "online");
+      const engine = desiredEngine();
+      if (session.ready && (session.engine || engine) === engine) {
+        setStage("model", "ok", engine);
+        $("sessionHint").textContent = "Ready. Pick a voice and generate.";
+        updateChips(session);
+        return session;
+      }
+      setStage("model", "working", `loading ${engine}…`);
+      $("sessionHint").textContent = `Loading ${engine}. First run downloads the model; later runs are faster.`;
+      await request("/api/wake", { method: "POST", body: JSON.stringify({ engine }) });
+
+      const started = Date.now();
+      while (Date.now() - started < 420000) {
+        await sleep(3000);
+        const live = await request("/api/session");
+        updateChips(live);
+        if (live.worker !== "online") {
+          setStage("worker", "error", "went offline");
+          setStage("model", "idle", "interrupted");
+          throw new Error("Worker went offline while loading.");
+        }
+        if (live.ready && (live.engine || engine) === engine) {
+          setStage("model", "ok", engine);
+          $("sessionHint").textContent = "Ready. Pick a voice and generate.";
+          return live;
+        }
+        const secs = Math.round((Date.now() - started) / 1000);
+        setStage("model", "working", `${live.model} · ${secs}s`);
+      }
+      throw new Error("Model load timed out after 7 minutes.");
+    } catch (err) {
+      setStage("gateway", "error", "failed");
+      $("sessionHint").textContent = err.message;
+      toast(err.message, true);
+      return null;
+    } finally {
+      sessionRunning = false;
+      $("startSession").disabled = false;
+      $("generate").disabled = false;
+    }
+  }
+
+  function updateChips(session) {
+    if (!session) return;
+    $("chipEngine").textContent = session.engine || "—";
+    $("chipQueue").textContent = session.queue
+      ? `${session.queue.queued} queued`
+      : "idle";
+    $("chipMode").textContent = config.format;
+  }
+
+  async function refreshSession() {
+    try {
+      const s = await request("/api/session");
+      updateChips(s);
+      setStage("gateway", "ok", "online");
+      setStage("worker", s.worker === "online" ? "ok" : "error", s.worker_state || s.worker);
+      setStage("model", s.ready ? "ok" : s.worker === "online" ? "idle" : "idle", s.ready ? s.engine : s.model);
+      if (s.worker === "online" && !s.ready) {
+        $("sessionHint").textContent = "Worker online. Tap Start session to load the model.";
+      }
+      $("colabHelp").classList.toggle("hidden", s.worker === "online");
+      toast(s.ready ? "Ready to speak." : s.worker === "online" ? "Worker online, model not loaded." : "Worker offline.");
+    } catch (err) {
+      setStage("gateway", "error", "unreachable");
+      toast(err.message, true);
+    }
+  }
+
+  function setJobPill(status, note, bad = false) {
+    const pill = $("jobPill");
+    const tones = { queued: "warn", processing: "warn", completed: "ok", failed: "bad" };
+    tone(pill, bad ? "bad" : tones[status] || "warn");
+    pill.querySelector("span").textContent = note || status;
+    $("out").classList.remove("hidden");
+  }
+
+  async function generate() {
+    if (busy) return;
+    const text = $("text").value.trim();
+    if (!text) { toast("Type something first.", true); $("text").focus(); return; }
+
+    busy = true;
+    $("generate").disabled = true;
+    $("startSession").disabled = true;
+    $("out").classList.add("hidden");
+    try {
+      const voice = selectedVoice();
+      const session = await request("/api/session");
+      if (!session.ready || session.engine !== voice.engine) {
+        setJobPill("queued", "waking " + voice.engine);
+        const ready = await startSession();
+        if (!ready) throw new Error("Could not start a session.");
+      }
+
+      setJobPill("queued", "queued");
+      const job = await request("/api/jobs", {
+        method: "POST",
+        body: JSON.stringify({
+          text,
+          voice: voice.id,
+          speed: Number(config.speed),
+          exaggeration: Number(config.exaggeration),
+          format: config.format,
+        }),
+      });
+      const started = Date.now();
+      let state = null;
+      while (Date.now() - started < 600000) {
+        await sleep(2000);
+        state = await request("/api/jobs/" + job.job_id);
+        const secs = Math.round((Date.now() - started) / 1000);
+        if (state.status === "completed") break;
+        if (state.status === "failed") throw new Error(state.error || "The worker failed.");
+        setJobPill(state.status, `${state.status} · ${secs}s`);
+        $("jobHint").textContent = "Rendering sentence by sentence. Keep the Colab tab open.";
+      }
+      if (!state || state.status !== "completed") throw new Error("Timed out waiting for audio.");
+
+      const blob = await requestBlob("/api/jobs/" + job.job_id + "/audio");
+      const objectUrl = URL.createObjectURL(blob);
+      $("player").src = objectUrl;
+      $("player").hidden = false;
+      const dl = $("download");
+      dl.href = objectUrl;
+      dl.download = `cloudtts-${job.job_id.slice(0, 8)}.${state.format || "mp3"}`;
+      dl.hidden = false;
+      dl.textContent = `Download ${(blob.size / 1024 / 1024 < 1 ? Math.round(blob.size / 1024) + " KB" : (blob.size / 1024 / 1024).toFixed(1) + " MB")}`;
+      setJobPill("completed", `ready · ${Math.round((Date.now() - started) / 1000)}s`);
+      $("jobHint").textContent = "Done. Play it, download it, or tweak the voice and regenerate.";
+      addHistory({ id: job.job_id, text, voice: voice.id, at: Date.now() });
+      toast("Speech ready.");
+    } catch (err) {
+      setJobPill("failed", "failed", true);
+      $("jobHint").textContent = err.message;
+      toast(err.message, true);
+    } finally {
+      busy = false;
+      $("generate").disabled = false;
+      $("startSession").disabled = false;
+    }
+  }
+
+  function addHistory(entry) {
+    const list = JSON.parse(localStorage.getItem(histKey) || "[]");
+    list.unshift(entry);
+    localStorage.setItem(histKey, JSON.stringify(list.slice(0, 8)));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = JSON.parse(localStorage.getItem(histKey) || "[]");
+    const ul = $("history");
+    ul.innerHTML = "";
+    if (!list.length) {
+      ul.innerHTML = '<li class="hint" style="margin:0">Nothing yet.</li>';
+      return;
+    }
+    for (const item of list) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      const preview = item.text.length > 72 ? item.text.slice(0, 72) + "…" : item.text;
+      const when = new Date(item.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      btn.innerHTML = `<span>${escapeHtml(preview)}</span><span class="when">${when}</span>`;
+      btn.onclick = () => {
+        $("text").value = item.text;
+        $("text").dispatchEvent(new Event("input"));
+        window.scrollTo({ top: $("text").getBoundingClientRect().top + window.scrollY - 140, behavior: "smooth" });
+      };
+      li.appendChild(btn);
+      ul.appendChild(li);
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function fillVoices() {
+    const select = $("voice");
+    select.innerHTML = "";
+    if (!catalog.length) {
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Connect to load voices";
+      select.appendChild(placeholder);
+      return;
+    }
+    const groups = [
+      ["Natural · Chatterbox", catalog.filter((v) => v.engine === "chatterbox")],
+      ["Fast · Kokoro", catalog.filter((v) => v.engine === "kokoro")],
+    ];
+    for (const [label, items] of groups) {
+      if (!items.length) continue;
+      const group = document.createElement("optgroup");
+      group.label = label;
+      for (const voice of items) {
+        const option = document.createElement("option");
+        option.value = voice.id;
+        option.textContent = voice.label + " · " + voice.gender;
+        group.appendChild(option);
+      }
+      select.appendChild(group);
+    }
+    if (!catalog.some((v) => v.id === config.voice) && catalog[0]) config.voice = catalog[0].id;
+    select.value = config.voice;
+  }
+
+  async function loadVoices() {
+    if (!baseUrl() || !config.key) return;
+    try {
+      const data = await request("/api/voices", {}, 30000);
+      catalog = data.voices || [];
+      if (data.default_voice && !catalog.some((v) => v.id === config.voice)) config.voice = data.default_voice;
+      fillVoices();
+      syncControls();
+      $("connState").textContent = "saved";
+      $("connCard").open = false;
+    } catch (err) {
+      $("connState").textContent = "check settings";
+      console.warn("voice catalog:", err.message);
+    }
+  }
+
+  function syncControls() {
+    $("url").value = config.url;
+    $("key").value = config.key;
+    $("format").value = config.format;
+    $("speed").value = config.speed;
+    $("speedOut").textContent = Number(config.speed).toFixed(2) + "×";
+    $("exag").value = config.exaggeration;
+    $("exagOut").textContent = Number(config.exaggeration).toFixed(2);
+    const engine = desiredEngine();
+    $("exagWrap").classList.toggle("hidden", engine !== "chatterbox");
+    $("chipEngine").textContent = engine;
+    $("chipMode").textContent = config.format;
+    if ($("voice").options.length) $("voice").value = config.voice;
+  }
+
+  function bind() {
+    $("url").addEventListener("input", (e) => { config.url = e.target.value.trim(); });
+    $("key").addEventListener("input", (e) => { config.key = e.target.value.trim(); });
+    $("voice").addEventListener("change", (e) => {
+      config.voice = e.target.value;
+      saveConfig();
+      syncControls();
+    });
+    $("format").addEventListener("change", (e) => {
+      config.format = e.target.value;
+      saveConfig();
+      syncControls();
+    });
+    $("speed").addEventListener("input", (e) => {
+      config.speed = Number(e.target.value);
+      $("speedOut").textContent = config.speed.toFixed(2) + "×";
+      saveConfig();
+    });
+    $("exag").addEventListener("input", (e) => {
+      config.exaggeration = Number(e.target.value);
+      $("exagOut").textContent = config.exaggeration.toFixed(2);
+      saveConfig();
+    });
+    $("text").addEventListener("input", () => {
+      $("charCount").textContent = String($("text").value.length);
+    });
+    $("saveConn").addEventListener("click", async () => {
+      config.url = $("url").value.trim().replace(/\/+$/, "");
+      config.key = $("key").value.trim();
+      saveConfig();
+      await loadVoices();
+      toast("Connection saved on this device.");
+    });
+    $("testConn").addEventListener("click", async () => {
+      config.url = $("url").value.trim().replace(/\/+$/, "");
+      config.key = $("key").value.trim();
+      saveConfig();
+      try {
+        const s = await request("/api/session", {}, 30000);
+        toast(`Gateway online · worker ${s.worker} · model ${s.model}`);
+        updateChips(s);
+        $("connCard").open = false;
+        await loadVoices();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+    $("refreshSession").addEventListener("click", refreshSession);
+    $("startSession").addEventListener("click", () => startSession());
+    $("generate").addEventListener("click", generate);
+    $("clear").addEventListener("click", () => {
+      $("text").value = "";
+      $("charCount").textContent = "0";
+      $("out").classList.add("hidden");
+      $("jobHint").textContent = "Tip: Cmd/Ctrl + Enter generates.";
+      $("text").focus();
+    });
+    $("copyUrl").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(baseUrl()); toast("Gateway URL copied."); }
+      catch { toast("Copy failed — select the URL manually.", true); }
+    });
+    document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); generate(); }
+    });
+    window.addEventListener("online", () => toast("Back online."));
+    window.addEventListener("offline", () => toast("Offline — the gateway is unreachable.", true));
+  }
+
+  async function init() {
+    bind();
+    fillVoices();
+    syncControls();
+    renderHistory();
+    if (config.url && config.key) await loadVoices();
+    if (!config.url) {
+      config.url = location.protocol.startsWith("http") ? location.origin : "";
+      $("url").value = config.url;
+    }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      const btn = $("installBtn");
+      if (!btn) return;
+      btn.classList.remove("hidden");
+      btn.onclick = async () => {
+        event.prompt();
+        await event.userChoice;
+        btn.classList.add("hidden");
+      };
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

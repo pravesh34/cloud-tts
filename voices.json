@@ -1,0 +1,53 @@
+{
+  "default_voice": "male_natural",
+  "voices": [
+    {
+      "id": "male_natural",
+      "label": "Male — Natural",
+      "gender": "male",
+      "engine": "chatterbox",
+      "description": "Chatterbox, cloned from worker/voices/male.wav",
+      "ref": "male.wav"
+    },
+    {
+      "id": "female_natural",
+      "label": "Female — Natural",
+      "gender": "female",
+      "engine": "chatterbox",
+      "description": "Chatterbox, cloned from worker/voices/female.wav",
+      "ref": "female.wav"
+    },
+    {
+      "id": "male_fast",
+      "label": "Male — Fast",
+      "gender": "male",
+      "engine": "kokoro",
+      "description": "Kokoro (grade C+), instant generation, CPU friendly",
+      "voice": "am_fenrir"
+    },
+    {
+      "id": "male_warm",
+      "label": "Male — Warm",
+      "gender": "male",
+      "engine": "kokoro",
+      "description": "Kokoro (grade C+)",
+      "voice": "am_michael"
+    },
+    {
+      "id": "female_fast",
+      "label": "Female — Fast",
+      "gender": "female",
+      "engine": "kokoro",
+      "description": "Kokoro (grade A), instant generation, CPU friendly",
+      "voice": "af_heart"
+    },
+    {
+      "id": "female_warm",
+      "label": "Female — Warm",
+      "gender": "female",
+      "engine": "kokoro",
+      "description": "Kokoro (grade A-)",
+      "voice": "af_bella"
+    }
+  ]
+}
